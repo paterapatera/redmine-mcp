@@ -1,0 +1,49 @@
+{
+  "name": "redmine-mcp",
+  "version": "1.0.0",
+  "description": "Redmine 内のイシューを検索する MCP (Model Context Protocol) サーバー",
+  "license": "ISC",
+  "author": "",
+  "type": "commonjs",
+  "main": "dist/index.js",
+  "bin": {
+    "redmine-mcp": "dist/index.js"
+  },
+  "scripts": {
+    "test": "bun test",
+    "build": "bun build ./src/index.ts --outdir ./dist --target bun",
+    "inspector": "npx @modelcontextprotocol/inspector bun dist/index.js",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/paterapatera/redmine-mcp.git"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "redmine",
+    "redmine-api",
+    "issue-find",
+    "ai"
+  ],
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.25.2",
+    "zod": "^4.3.5"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@typescript-eslint/eslint-plugin": "^8.53.0",
+    "@typescript-eslint/parser": "^8.53.0",
+    "eslint": "^9.39.2",
+    "prettier": "3.8.0"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "engines": {
+    "bun": ">=1.2.21"
+  }
+}
