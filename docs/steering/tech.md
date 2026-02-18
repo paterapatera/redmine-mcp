@@ -4,6 +4,8 @@
 
 Single-process MCP server: Bun runs the built CommonJS bundle; MCP SDK handles stdio transport and tool/resource registration. Redmine is accessed via REST API with env-configured URL and API key.
 
+- **Clean Architecture**: The project adopts Clean Architecture. Dependencies point inward: Domain (entities/types) → Application (use cases, ports) → Adapters (implementations, I/O) → Main (wiring). Ports are interfaces defined in the application layer; adapters implement them. See feature specs (e.g. `docs/specs/`) for layer boundaries and file layout.
+
 ## Core Technologies
 
 - **Language**: TypeScript (strict mode)
@@ -28,10 +30,20 @@ Single-process MCP server: Bun runs the built CommonJS bundle; MCP SDK handles s
 
 - ESLint with `@typescript-eslint` (plugin + parser)
 - Prettier (single quotes, 100 print width, 2-space indent, LF, semicolons)
+- **Method length**: Aim for 10 lines or fewer per method; extract helpers or smaller functions when logic grows.
+- **File length**: Aim for 200 lines or fewer per file; split by responsibility or layer when larger.
+
+### Comments and Documentation
+
+- **Symbol comments (Japanese)**: Add explanation comments in Japanese for class names, function names (excluding constructors), property names, and constant names. Target: newly added or changed symbols. In TypeScript, prefer **TSDoc** format (e.g. `/** ... */`).
+- **Intent for non-obvious code**: For implementations that are hard to follow or use a non-obvious approach, document intent with a `NOTE: {説明}` comment so that future readers understand why it is written that way.
+- **Concrete wording**: In comments, avoid vague pronouns (e.g. 「それ」「これ」); use concrete nouns and refer to the actual subject explicitly.
+- **Unambiguous comments**: If a comment can be misunderstood or supports more than one interpretation, rewrite it so that the meaning is clear and single.
+- **Complex functions**: For functions whose behavior is not obvious from the name or a short description, add input/output examples or a brief usage example in the comment (e.g. in TSDoc `@example` or an inline example block).
 
 ### Testing
 
-- `bun test` for unit tests; E2E via MCP Inspector (`bun run inspector`)
+- `bun test` for unit tests; E2E via MCP Inspector (`bun run inspector`). Test files: `*.test.ts` alongside source; mocking and structure: **`testing.md`**.
 
 ## Development Environment
 

@@ -2,14 +2,14 @@
 
 ## Organization Philosophy
 
-Source lives under `src/`; build output under `dist/`. Single entry `src/index.ts` for the MCP server. Structure is flat or lightly grouped by concern (e.g. Redmine client, tools, handlers) rather than by layer.
+Source lives under `src/`; build output under `dist/`. Single entry `src/index.ts` for the MCP server. The project follows **Clean Architecture**: structure is grouped by layer — `domain/`, `application/`, `adapters/` — with Main wiring in `index.ts`. See feature specs under `docs/specs/` for the exact layout per feature.
 
 ## Directory Patterns
 
 ### Source
 **Location**: `/src/`  
-**Purpose**: TypeScript source; entry `index.ts`, plus modules for Redmine API, MCP tools/resources, and shared utilities.  
-**Example**: `src/index.ts`, `src/redmine.ts`, `src/tools.ts`
+**Purpose**: TypeScript source; entry `index.ts` (Main), plus Clean Architecture layers: `domain/` (entities, result types), `application/` (use cases, ports), `adapters/` (gateways, config, MCP tool handlers).  
+**Example**: `src/index.ts`, `src/domain/`, `src/application/`, `src/adapters/`. Keep files under ~200 lines; split by responsibility when larger. Unit tests: `*.test.ts` next to module (see **`testing.md`**).
 
 ### Build output
 **Location**: `/dist/`  
