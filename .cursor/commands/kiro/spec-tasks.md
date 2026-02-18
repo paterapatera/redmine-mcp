@@ -6,12 +6,12 @@ argument-hint: <feature-name:$1> [-y:$2] [--sequential:$3]
 # Implementation Tasks Generator
 
 <background_information>
-- **Mission**: Generate detailed, actionable implementation tasks that translate technical design into executable work items
+- **Mission**: Generate an actionable, dependency-ordered tasks.md for the feature based on approved requirements and design.
 - **Success Criteria**:
-  - All requirements mapped to specific tasks
-  - Tasks properly sized (1-3 hours each)
-  - Clear task progression with proper hierarchy
-  - Natural language descriptions focused on capabilities
+  - All requirements mapped to specific tasks (organized by requirement for independent implementation and testing)
+  - Tasks in strict checklist format with Task ID, [P?], requirement label, and clear description with file path
+  - Phase structure: Setup → Foundational → one phase per requirement → Polish
+  - Each requirement phase independently testable
 </background_information>
 
 <instructions>
@@ -25,6 +25,7 @@ Generate implementation tasks for feature **$1** based on approved requirements 
 **Read all necessary context**:
 - `docs/specs/$1/spec.json`, `requirements.md`, `design.md`
 - `docs/specs/$1/tasks.md` (if exists, for merge mode)
+- `docs/specs/$1/research.md` (optional, if exists)
 - **Entire `docs/steering/` directory** for complete project memory
 
 **Validate approvals**:
@@ -45,29 +46,37 @@ File patterns to read:
 - docs/settings/templates/specs/tasks.md
 
 Mode: {generate or merge based on tasks.md existence}
-Instruction highlights:
-- Map all requirements to tasks and list requirement IDs only (comma-separated) without extra narration
-- Promote single actionable sub-tasks to major tasks and keep container summaries concise
-- Apply `(P)` markers only when parallel criteria met (omit in sequential mode)
-- Mark optional acceptance-criteria-focused test coverage subtasks with `- [ ]*` only when deferrable post-MVP
 
 ### Step 2: Generate Implementation Tasks
 
-**Load generation rules and template**:
-- Read `docs/settings/rules/tasks-generation.md` for principles
-- If `sequential == false`: Read `docs/settings/rules/tasks-parallel-analysis.md` for parallel judgement criteria
-- Read `docs/settings/templates/specs/tasks.md` for format (supports `(P)` markers)
+**Task format (REQUIRED)** — every task MUST follow:
 
-**Generate task list following all rules**:
+```text
+- [ ] [TaskID] [P?] [Requirement?] Description with file path
+```
+
+**Format components**:
+1. **Checkbox**: ALWAYS `- [ ]` (use `- [ ]*` only for optional deferrable post-MVP test coverage when applicable)
+2. **Task ID**: Sequential in execution order (T001, T002, T003...)
+3. **[P] marker**: Include ONLY if task is parallelizable (different files, no dependencies on incomplete tasks). Omit all [P] when `sequential == true`.
+4. **Requirement label**: For requirement-phase tasks only. Use numeric IDs from requirements.md (e.g. [1.1], [1.2], [2.1]). Setup, Foundational, and Polish phases: NO requirement label.
+5. **Description**: Clear action with exact file path.
+
+**Phase structure**:
+- **Phase 1**: Setup (project initialization)
+- **Phase 2**: Foundational (blocking prerequisites — MUST complete before any requirement work)
+- **Phase 3+**: One phase per requirement (priority order from requirements.md). Within each: tests (if requested) → implementation tasks. Each phase independently testable.
+- **Final Phase**: Polish & Cross-Cutting Concerns
+
+**Generation rules**:
 - Use language specified in spec.json
-- Map all requirements to tasks
-- When documenting requirement coverage, list numeric requirement IDs only (comma-separated) without descriptive suffixes, parentheses, translations, or free-form labels
-- Ensure all design components included
-- Verify task progression is logical and incremental
-- Collapse single-subtask structures by promoting them to major tasks and avoid duplicating details on container-only major tasks (use template patterns accordingly)
-- Apply `(P)` markers to tasks that satisfy parallel criteria (skip markers when `sequential == true`)
-- Mark optional acceptance-criteria-focused test coverage subtasks with `- [ ]*` only when deferrable post-MVP
+- Map ALL requirements to tasks; list requirement IDs only (comma-separated) where required, no extra labels or narration
+- Organize tasks by requirement so each requirement can be implemented and tested independently
+- Include exact file paths in task descriptions
+- Apply [P] only when parallel criteria are met (omit when sequential)
+- Tests are OPTIONAL: only include test tasks if explicitly requested in the feature specification or design
 - If existing tasks.md found, merge with new content
+- Follow principles in docs/settings/rules/tasks-generation.md; when sequential is false, use tasks-parallel-analysis.md for [P] criteria
 
 ### Step 3: Finalize
 
@@ -81,12 +90,10 @@ Instruction highlights:
   - Update `updated_at` timestamp
 
 ## Critical Constraints
-- **Follow rules strictly**: All principles in tasks-generation.md are mandatory
-- **Natural Language**: Describe what to do, not code structure details
-- **Complete Coverage**: ALL requirements must map to tasks
-- **Maximum 2 Levels**: Major tasks and sub-tasks only (no deeper nesting)
-- **Sequential Numbering**: Major tasks increment (1, 2, 3...), never repeat
-- **Task Integration**: Every task must connect to the system (no orphaned work)
+- **Checklist format**: Every task MUST have checkbox, Task ID (T001…), [P?] when applicable, requirement label for requirement phases, and description with file path
+- **Complete coverage**: ALL requirements must map to tasks
+- **Task integration**: Every task must connect to the system (no orphaned work)
+- **Requirement organization**: Tasks grouped by requirement to enable independent implementation and testing
 </instructions>
 
 ## Tool Guidance
@@ -98,15 +105,16 @@ Instruction highlights:
 Provide brief summary in the language specified in spec.json:
 
 1. **Status**: Confirm tasks generated at `docs/specs/$1/tasks.md`
-2. **Task Summary**: 
-   - Total: X major tasks, Y sub-tasks
-   - All Z requirements covered
-   - Average task size: 1-3 hours per sub-task
-3. **Quality Validation**:
+2. **Task summary**:
+   - Total task count (T001…TNNN)
+   - Task count per requirement (or phase)
+   - All requirements covered
+   - Parallel opportunities identified (if not sequential)
+3. **Quality validation**:
    - ✅ All requirements mapped to tasks
-   - ✅ Task dependencies verified
-   - ✅ Testing tasks included
-4. **Next Action**: Review tasks and proceed when ready
+   - ✅ Format: checklist, ID, labels, file paths
+   - ✅ Dependencies and execution order clear
+4. **Next action**: Review tasks and proceed when ready
 
 **Format**: Concise (under 200 words)
 
@@ -132,8 +140,9 @@ Provide brief summary in the language specified in spec.json:
 - **User Message**: "Template or rules files missing in `docs/settings/`"
 - **Fallback**: Use inline basic structure with warning
 - **Suggested Action**: "Check repository setup or restore template files"
-- **Missing Numeric Requirement IDs**:
-  - **Stop Execution**: All requirements in requirements.md MUST have numeric IDs. If any requirement lacks a numeric ID, stop and request that requirements.md be fixed before generating tasks.
+
+**Missing Numeric Requirement IDs**:
+- **Stop Execution**: All requirements in requirements.md MUST have numeric IDs. If any requirement lacks a numeric ID, stop and request that requirements.md be fixed before generating tasks.
 
 ### Next Phase: Implementation
 
@@ -143,13 +152,12 @@ Provide brief summary in the language specified in spec.json:
 - Fresh context ensures clean state and proper task focus
 
 **If Tasks Approved**:
-- Execute specific task: `/kiro/spec-impl $1 1.1` (recommended: clear context between each task)
-- Execute multiple tasks: `/kiro/spec-impl $1 1.1,1.2` (use cautiously, clear context between tasks)
-- Without arguments: `/kiro/spec-impl $1` (executes all pending tasks - NOT recommended due to context bloat)
+- Execute specific task: `/kiro/spec-impl $1 T001` (recommended: clear context between each task)
+- Execute multiple tasks: `/kiro/spec-impl $1 T001,T002` (use cautiously, clear context between tasks)
+- Without arguments: `/kiro/spec-impl $1` (executes all pending tasks — NOT recommended due to context bloat)
 
 **If Modifications Needed**:
 - Provide feedback and re-run `/kiro/spec-tasks $1`
 - Existing tasks used as reference (merge mode)
 
 **Note**: The implementation phase will guide you through executing tasks with appropriate context and validation.
-
