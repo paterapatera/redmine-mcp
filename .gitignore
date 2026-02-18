@@ -34,10 +34,15 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 .DS_Store
 
 .cursor/*
+!.cursor/agents
 !.cursor/commands
 !.cursor/rules
+.cursor/agents/*
 .cursor/commands/*
 .cursor/rules/*
+!.cursor/agents/spec-impl-context.md
+!.cursor/agents/spec-impl-planner.md
+!.cursor/agents/spec-impl-phase-executor.md
 !.cursor/commands/kiro
 !.cursor/rules/kiro
 .vscode/*
