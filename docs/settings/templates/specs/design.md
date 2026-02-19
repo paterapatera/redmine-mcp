@@ -43,6 +43,23 @@ When modifying existing systems:
 - Integration points that must be maintained
 - Technical debt addressed or worked around
 
+### File Tree(repository root)
+<!--
+  ACTION REQUIRED: Replace the placeholder tree below with the concrete layout
+  for this feature.
+-->
+The file structure added and referenced by this function.
+
+```
+<root-name>/
+├── src/
+│   ├── xxxxx.ts         # description
+│   └── xxxxxxx/
+│        └── xxxxxx.ts   # description
+├── xxxxx.json
+└── xxxxx.json
+```
+
 ### Architecture Pattern & Boundary Map
 **RECOMMENDED**: Include Mermaid diagram showing the chosen architecture pattern and system boundaries (required for complex features, optional for simple additions)
 
