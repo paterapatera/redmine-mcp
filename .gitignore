@@ -43,6 +43,8 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 !.cursor/agents/spec-impl-context.md
 !.cursor/agents/spec-impl-planner.md
 !.cursor/agents/spec-impl-phase-executor.md
+!.cursor/agents/spec-validate-impl.md
+!.cursor/agents/spec-fixer.md
 !.cursor/commands/kiro
 !.cursor/rules/kiro
 .vscode/*

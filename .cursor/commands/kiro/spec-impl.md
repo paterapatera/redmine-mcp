@@ -12,6 +12,7 @@ argument-hint: <feature-name:$1> [task-ids-or-requirement:$2 e.g. T001 or T001,T
   - Context loaded and validated via subagent
   - Plan produced (phase-ordered task list)
   - Each phase executed by subagent (TDD when test tasks exist)
+  - After each phase: validate-impl run; if NO-GO, spec-fixer run with report, then re-validate (proceed only when GO)
   - Single summary at the end in the language from spec.json
 </background_information>
 
@@ -46,6 +47,10 @@ For **each phase** in the plan (Setup → Foundational → Requirement phases �
    - Ordered task list for that phase (from the planner output)
 2. **Collect** the phase result (tasks executed, test results, completed, errors, stopped).
 3. If the phase result reports **Stopped: yes** (e.g. test failure or blocking error): **halt** the run, include this phase in the summary, and do not start the next phase until the user resolves the issue.
+4. **After each phase executor completion** (and only when not stopped):
+   - **Invoke the `validate-impl` subagent** with feature **$1** and, if available, the task IDs just completed in this phase (so validation is scoped to the current phase).
+   - If the validation report **Decision** is **NO-GO**: **invoke the `spec-fixer` subagent** with the full validation report content in the prompt (Issues, Decision, next steps). After spec-fixer finishes, re-invoke **validate-impl** for feature **$1** to confirm GO; if still NO-GO, include the remaining issues in the summary and **halt** (do not start the next phase) so the user can address them.
+   - If **GO** (or after spec-fixer achieved GO): proceed to the next phase.
 
 ### Step 4: Summarize and Display Results
 
@@ -53,7 +58,7 @@ Aggregate all subagent outputs and produce **one summary** in the language speci
 
 1. **Context**: Feature, approved (yes).
 2. **Plan**: Phases that were run (and optionally task count per phase).
-3. **Per-phase**: Phase name → tasks executed, test results (pass/fail), completed task IDs, any errors.
+3. **Per-phase**: Phase name → tasks executed, test results (pass/fail), completed task IDs, any errors; validation result (GO/NO-GO) and whether spec-fixer was run (and re-validation result if applicable).
 4. **Overall**: Total completed tasks, remaining pending (if any), and any critical errors or next steps.
 
 **Format**: Concise (under 200 words for the summary; per-phase details can be short bullet lists).
@@ -61,8 +66,9 @@ Aggregate all subagent outputs and produce **one summary** in the language speci
 
 ## Tool Guidance
 
-- **Delegate, do not implement**: Use `spec-impl-context`, `spec-impl-planner`, and `spec-impl-phase-executor` for their steps; you only orchestrate and summarize.
+- **Delegate, do not implement**: Use `spec-impl-context`, `spec-impl-planner`, `spec-impl-phase-executor`, **validate-impl**, and **spec-fixer** for their steps; you only orchestrate and summarize.
 - **Phase order**: Respect Setup → Foundational → Requirements → Polish; run one phase at a time.
+- **After each phase**: Run validate-impl for **$1** (and completed task IDs when useful); if NO-GO, run spec-fixer with the report, then re-validate; halt before the next phase if GO is not achieved after fixing.
 - **Stop on failure**: If a phase executor reports a blocking failure, do not start the next phase; summarize up to that point and suggest fixing before re-running.
 
 ## Output Description
