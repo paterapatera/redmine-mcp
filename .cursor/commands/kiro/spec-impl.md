@@ -1,25 +1,20 @@
 <meta>
-description: Execute spec tasks in phase order using subagents; orchestrate context, planning, and per-phase execution, then summarize results
+description: Load context, read tasks.md to get task list, then run each task via spec-impl-task-executor; summarize results
 argument-hint: <feature-name:$1> [task-ids-or-requirement:$2 e.g. T001 or T001,T010 or 1.1]
 </meta>
 
-# Implementation Task Executor (Orchestrator)
+# Implementation (Orchestrator)
 
 <background_information>
-- **Mission**: Run implementation for feature **$1** by delegating to subagents per phase, then summarize and display all results.
-- **Your role**: Subagent **management** and **result summarization**. Do not implement tasks yourself; delegate to the phase subagents.
-- **Success criteria**:
-  - Context loaded and validated via subagent
-  - Plan produced (phase-ordered task list)
-  - Each phase executed by subagent (TDD when test tasks exist)
-  - After each phase: validate-impl run; if NO-GO, spec-fixer run with report, then re-validate (proceed only when GO)
-  - Single summary at the end in the language from spec.json
+- **Mission**: Run implementation for feature **$1** by reading tasks.md, then delegating each task to **spec-impl-task-executor** and summarizing results.
+- **Your role**: Load context, plan from tasks.md, orchestrate task execution, and summarize. Do not implement tasks yourself; delegate each task to the task executor.
+- **Success criteria**: Context validated; task list from tasks.md (scope from $2); each task run by task executor (validation and fixes inside executor); one summary at the end in the language from spec.json.
 </background_information>
 
 <instructions>
 ## Core Task
 
-Orchestrate implementation for feature **$1** using subagents. Optional **$2**: task IDs (e.g. `T001`, `T001,T010`) or requirement (e.g. `1.1`). If omitted, run all pending tasks in phase order.
+Run implementation for feature **$1**. Optional **$2**: task IDs (e.g. `T001`, `T001,T010`) or requirement (e.g. `1.1`). If omitted, run all pending tasks in order.
 
 ## Execution Flow
 
@@ -28,64 +23,58 @@ Orchestrate implementation for feature **$1** using subagents. Optional **$2**: 
 **Invoke the `spec-impl-context` subagent** with feature **$1**.
 
 - It validates using `spec.json` (approval) and verifies that requirements.md, design.md, tasks.md exist.
-- If the subagent reports **Approved: no** or missing spec files: **stop** and show its message (e.g. complete `/kiro/spec-requirements`, `/kiro/spec-design`, `/kiro/spec-tasks`). Do not proceed to planning or execution.
+- If **Approved: no** or missing spec files: **stop** and show its message. Do not proceed.
 
-### Step 2: Plan Tasks (Subagent)
+### Step 2: Read tasks.md and Build Task List
 
-**Invoke the `spec-impl-planner` subagent** with feature **$1** and optional **$2**.
+**Read** `docs/specs/<feature>/tasks.md` (and optionally `docs/specs/<feature>/spec.json` for language).
 
-- Obtain the **phase-ordered plan**: which phases to run and the ordered task list per phase.
-- If the plan is empty (e.g. no pending tasks), report that and exit.
+- **Parse tasks.md**: Identify phases (Setup → Foundational → Requirement phases → Polish). For each task: ID, description, whether it is **[P]** (parallel), requirement label (e.g. [1.1]). Within a requirement phase, test tasks before implementation tasks.
+- **Resolve scope from $2**:
+  - **$2 empty**: list all **pending** tasks (unchecked `- [ ]`) in phase order.
+  - **$2 = task IDs** (e.g. `T001` or `T001,T010`): list those tasks in phase/dependency order.
+  - **$2 = requirement** (e.g. `1.1`): list all tasks labeled `[1.1]` in order (tests before impl).
+- **Output (internal)**: An ordered list of tasks. For each task: task ID, description, phase name, **parallel [P]**: yes/no.
+- If the list is empty (e.g. no pending tasks), report that and exit.
 
-### Step 3: Execute Phases (Subagent per Phase)
+### Step 3: Execute Tasks (Task Executor per Task)
 
-For **each phase** in the plan (Setup → Foundational → Requirement phases → Polish):
+For **each task** in the list from Step 2:
 
-1. **Invoke the `spec-impl-phase-executor` subagent** with:
-   - Feature **$1**
-   - Phase name
-   - Ordered task list for that phase (from the planner output)
-2. **Collect** the phase result (tasks executed, test results, completed, errors, stopped).
-3. If the phase result reports **Stopped: yes** (e.g. test failure or blocking error): **halt** the run, include this phase in the summary, and do not start the next phase until the user resolves the issue.
-4. **After each phase executor completion** (and only when not stopped):
-   - **Invoke the `validate-impl` subagent** with feature **$1** and, if available, the task IDs just completed in this phase (so validation is scoped to the current phase).
-   - If the validation report **Decision** is **NO-GO**: **invoke the `spec-fixer` subagent** with the full validation report content in the prompt (Issues, Decision, next steps). After spec-fixer finishes, re-invoke **validate-impl** for feature **$1** to confirm GO; if still NO-GO, include the remaining issues in the summary and **halt** (do not start the next phase) so the user can address them.
-   - If **GO** (or after spec-fixer achieved GO): proceed to the next phase.
+1. **Invoke the `spec-impl-task-executor` subagent** with: feature **$1**, task ID and description, phase name.
+2. **Collect** the Task Result (Task, Test results, Validation result, Completed, Errors).
+3. **If the task is not [P] and (Completed is no or Errors)**: **stop**; record the failure; go to Step 4.
+4. **If the task is [P] and failed**: record the failed task ID and error; continue with the next task.
+
+**Example delegation:** "Use the spec-impl-task-executor subagent to execute this task for feature &lt;$1&gt;, phase &lt;phase name&gt;: [task ID] &lt;task description&gt;."
+
+**Failed [P] tasks:** In the summary, list each failed [P] task and recommend retrying via task executor or re-running this command with those task IDs.
 
 ### Step 4: Summarize and Display Results
 
-Aggregate all subagent outputs and produce **one summary** in the language specified in spec.json:
+Produce **one summary** in the language from spec.json:
 
-1. **Context**: Feature, approved (yes).
-2. **Plan**: Phases that were run (and optionally task count per phase).
-3. **Per-phase**: Phase name → tasks executed, test results (pass/fail), completed task IDs, any errors; validation result (GO/NO-GO) and whether spec-fixer was run (and re-validation result if applicable).
-4. **Overall**: Total completed tasks, remaining pending (if any), and any critical errors or next steps.
+- **Context**: Feature, approved (yes).
+- **Tasks**: Executed (by ID), completed count, any errors.
+- **Validation**: GO/NO-GO from task results.
+- **Failed [P] tasks** (if any): IDs and suggested retry.
 
-**Format**: Concise (under 200 words for the summary; per-phase details can be short bullet lists).
-</instructions>
+**Format**: Concise (under 200 words).
 
 ## Tool Guidance
 
-- **Delegate, do not implement**: Use `spec-impl-context`, `spec-impl-planner`, `spec-impl-phase-executor`, **validate-impl**, and **spec-fixer** for their steps; you only orchestrate and summarize.
-- **Phase order**: Respect Setup → Foundational → Requirements → Polish; run one phase at a time.
-- **After each phase**: Run validate-impl for **$1** (and completed task IDs when useful); if NO-GO, run spec-fixer with the report, then re-validate; halt before the next phase if GO is not achieved after fixing.
-- **Stop on failure**: If a phase executor reports a blocking failure, do not start the next phase; summarize up to that point and suggest fixing before re-running.
+- Use **spec-impl-context** and **spec-impl-task-executor** only; you read tasks.md yourself and orchestrate. Validation and fixes run inside the task executor.
+- **Order**: Execute tasks in the order from tasks.md (phase order; within a requirement, tests before impl). Respect [P]: stop on non-[P] failure; on [P] failure record and continue.
+- **Failed [P] tasks**: Include in summary with recommended retry (task executor or re-run with those IDs).
 
 ## Output Description
 
-Final output must include:
-
-1. **Subagent results**: Brief mention of context (ok/stop), plan (phases + task counts), and each phase result (executed, tests, completed, errors).
-2. **Unified summary**: Tasks executed (by ID), status (completed count, remaining), phase checkpoints, and any suggested next actions.
-
-**Format**: Concise (under 200 words for the final summary).
+- **Subagent results**: Context (ok/stop), task list used, each task result (executed, tests, validation, completed, errors).
+- **Summary**: Tasks run, completed count, validation outcome, failed [P] tasks and next actions. Concise.
 
 ## Safety & Fallback
 
-- **Tasks not approved or missing spec files**: Stop after `spec-impl-context`; show the subagent’s message; suggest completing previous Kiro phases.
-- **Test failures**: Stop after the phase that failed; include that phase’s result in the summary; suggest debugging and re-running.
-- **Task execution examples** (unchanged):
-  - `/kiro/spec-impl $1 T001` — single task
-  - `/kiro/spec-impl $1 T001,T002,T010` — multiple tasks
-  - `/kiro/spec-impl $1 1.1` — all tasks for requirement 1.1
-  - `/kiro/spec-impl $1` — all pending tasks in phase order
+- **Not approved or missing spec files**: Stop after spec-impl-context; suggest completing prior Kiro phases.
+- **Non-[P] task failure**: Stop after that task; suggest debugging and re-running (e.g. with that task ID).
+- **Examples**: `/kiro/spec-impl $1` (all pending), `/kiro/spec-impl $1 T001`, `/kiro/spec-impl $1 T001,T002`, `/kiro/spec-impl $1 1.1`.
+</instructions>
